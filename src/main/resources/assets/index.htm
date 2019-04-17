@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<form id="myForm" action="" method="POST" enctype="text/plain">
+    <input type="hidden" name="grant_type" value="password">
+    <input type="text" name="username" value=""/>
+    <input type="text" name="password" value=""/>
+    <input type="submit" value="Submit"/>
+</form>
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script type="text/javascript">
+
+    $("#myForm").submit(function (e) {
+        e.preventDefault();
+        var form = $(this);
+        var ret = JSON.stringify(objectifyForm(this))
+        var url = form.attr('action');
+
+        $.ajax({
+            type: "POST",
+            url: "http://localhost:8080/api/login",
+            contentType: "application/json",
+            data: ret, // serializes the form's elements.
+            processData: false,
+            dataType: "json",
+            success: function (data) {
+                alert("Uspesne prihlasenie, token: " + data.access_token); // show response from the php script.
+
+            },
+            error: function (xhr,status,error) {
+                alert("Chyba: " + error); // show response from the php script.
+            }
+
+        });
+
+
+    });
+
+    function objectifyForm(formArray) {//serialize data function
+
+        var returnArray = {};
+        for (var i = 0; i < formArray.length; i++) {
+            returnArray[formArray[i]['name']] = formArray[i]['value'];
+        }
+        return returnArray;
+    }
+
+</script>
+
+</body>
+</html>

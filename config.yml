@@ -1,0 +1,45 @@
+template: Hello, %s!
+defaultName: Stranger
+
+#OAUTH2 settings
+oauth2:
+  keyAlias: myrsakey
+  keystorePassword: password
+  keyPassword: password
+  keystoreFilename: keyStoreFileName.jks
+
+# Logging settings.
+logging:
+
+  # The default level of all loggers. Can be OFF, ERROR, WARN, INFO, DEBUG, TRACE, or ALL.
+  level: INFO
+
+  # Logger-specific levels.
+  loggers:
+
+    # Sets the level for 'com.example.app' to DEBUG.
+    sk.fri.uniza: DEBUG
+
+    # Redirects SQL logs to a separate file
+    org.hibernate.SQL:
+      level: DEBUG
+
+#Views
+viewRendererConfiguration:
+  freemarker:
+    strict_syntax: false
+
+#Server configuration.
+server:
+  rootPath: /api/
+  applicationConnectors:
+    - type: http
+      port: 8085
+    - type: https
+      port: 8445
+      keyStorePath: dwstart.keystore
+      keyStorePassword: crimson
+      validateCerts: false
+  adminConnectors:
+      - type: http
+        port: 8084
