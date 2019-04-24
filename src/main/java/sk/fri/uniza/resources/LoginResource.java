@@ -1,34 +1,32 @@
 package sk.fri.uniza.resources;
 
+import io.dropwizard.hibernate.UnitOfWork;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
-
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sk.fri.uniza.api.*;
 import sk.fri.uniza.auth.OAuth2Clients;
-import sk.fri.uniza.auth.User;
-import sk.fri.uniza.auth.Users;
+import sk.fri.uniza.core.User;
+import sk.fri.uniza.db.UsersDao;
 import sk.fri.uniza.views.LoginPageView;
 import sk.fri.uniza.views.LoginPageViewBuilder;
 
-
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.*;
-import javax.ws.rs.core.*;
-
-
-import java.lang.annotation.Annotation;
+import javax.ws.rs.core.CacheControl;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
 import java.net.URI;
 import java.security.Key;
-import java.security.KeyFactory;
 import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.*;
+import java.util.Date;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Path("/login")
@@ -41,28 +39,28 @@ public class LoginResource {
 
     private Key privateKey;
     private Key publicKey;
-    private Users users;
+    private UsersDao usersDao;
     private Claims claimsJws;
     private OAuth2Clients oAuth2Clients;
 
-    public LoginResource(KeyPair keyPair, Users users, OAuth2Clients oAuth2Clients) {
+    public LoginResource(KeyPair keyPair, UsersDao usersDao, OAuth2Clients oAuth2Clients) {
         //We will sign our JWT with our ApiKey secret
         this.privateKey = keyPair.getPrivate();
         this.publicKey = keyPair.getPublic();
 //        this.privateKey = new SecretKeySpec(privateKey.getEncoded(), SignatureAlgorithm.forSigningKey(privateKey).getJcaName());
-        this.users = users;
+        this.usersDao = usersDao;
         this.oAuth2Clients = oAuth2Clients;
         oauthSession = new ConcurrentHashMap<String, OauthRequest>();
         oauthCodes = new ConcurrentHashMap<String, User>();
 
     }
 
-    @Path("/")
+
     @GET
     @Produces(MediaType.TEXT_HTML)
-    public LoginPageView getLoginPage(@BeanParam OauthRequest oauthRequest) {
+    public LoginPageView showLoginPage(@BeanParam OauthRequest oauthRequest) {
 
-        return oAuth2Clients.get(oauthRequest.getClientId())
+        return oAuth2Clients.findById(oauthRequest.getClientId())
                 .map(oAuth2Client -> {
 
                     String sessionId = UUID.randomUUID().toString();
@@ -88,24 +86,25 @@ public class LoginResource {
 
     @Path("/code")
     @POST
+    @UnitOfWork
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.APPLICATION_FORM_URLENCODED)
-    public Response getAccsesCode(/*MultivaluedMap<String, String> */@NotNull @BeanParam LoginData formParams) {
+    public Response getAccessCode(/*MultivaluedMap<String, String> */@NotNull @BeanParam LoginData formParams) {
         if (formParams != null) {
-
             /*
               Test if login info is valid i.e. User name and password
              */
-            Optional<User> optionalUser = users.get(formParams.getUsername());
+            Optional<User> optionalUser = usersDao.findByUsername(formParams.getUsername());
             if (!optionalUser.isPresent()) {
-                return Response.status(Response.Status.BAD_REQUEST).build();
+                throw new WebApplicationException("<div class=\"red lighten-2\" style=\"padding:8px;\"><b>Autentifikácia zlyhala.<b/> <br>" +
+                        "Skontrolujte prihlasovacie meno a heslo.</div> <br> <a class=\"waves-effect waves-light btn orange\" href=\"javascript:history.back()\">Späť</a>", Response.Status.UNAUTHORIZED);
             }
 
             User user = optionalUser.get();
             if (!user.testPassword(formParams.getPassword())) {
-                return Response.status(Response.Status.BAD_REQUEST).build();
+                throw new WebApplicationException("<div class=\"red lighten-2\" style=\"padding:8px;\"><b>Autentifikácia zlyhala.<b/> <br>" +
+                        "Skontrolujte prihlasovacie meno a heslo.</div> <br> <a class=\"waves-effect waves-light btn orange\" href=\"javascript:history.back()\">Späť</a>", Response.Status.UNAUTHORIZED);
             }
-
 
             OauthRequest oauthRequest = oauthSession.remove(formParams.getSessionId());
             String code = UUID.randomUUID().toString();
@@ -113,26 +112,29 @@ public class LoginResource {
             oauthCodes.put(code, user);
 
             URI uri = UriBuilder.fromPath(oauthRequest.getRedirectUri())
-                    .queryParam("code", code).build();
+                    .queryParam("code", code)
+                    .queryParam("state", oauthRequest.getState())
+                    .build();
 
             return Response.status(Response.Status.TEMPORARY_REDIRECT)
                     .location(uri)
                     .build();
         }
-        return Response.noContent().build();
+        throw new WebApplicationException("<div class=\"red lighten-2\" style=\"padding:8px;\"><b>Autentifikácia zlyhala.<b/> <br>" +
+                "Skontrolujte prihlasovacie meno a heslo.</div> <br> <a class=\"waves-effect waves-light btn orange\" href=\"javascript:history.back()\">Späť</a>", Response.Status.UNAUTHORIZED);
     }
 
     @Path("/implicit")
     @POST
+    @UnitOfWork
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-//    @Produces(MediaType.APPLICATION_JSON)
-    public Response getImplicitFlow(/*MultivaluedMap<String, String> */@NotNull @BeanParam LoginData formParams) {
+    public Response implicitFlowAuth(@NotNull @BeanParam LoginData formParams) {
         if (formParams != null) {
 
             /*
               Test if login info is valid i.e. User name and password
              */
-            Optional<User> optionalUser = users.get(formParams.getUsername());
+            Optional<User> optionalUser = usersDao.findByUsername(formParams.getUsername());
             if (!optionalUser.isPresent()) {
                 return Response.status(Response.Status.BAD_REQUEST).build();
             }
@@ -167,19 +169,24 @@ public class LoginResource {
         return Response.noContent().build();
     }
 
-    @Path("/token")
     @POST
+    @Path("/token")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.APPLICATION_JSON)
+    @UnitOfWork
     public Response getAccessToken(/*MultivaluedMap<String, String> params*/@NotNull @BeanParam OauthTokenRequest tokenRequest) {
 
-        oAuth2Clients.get(tokenRequest.getClientId())
+        oAuth2Clients.findById(tokenRequest.getClientId())
                 .filter(oAuth2Client -> oAuth2Client.getClientSecrete().equals(tokenRequest.getClient_secret()))
                 .orElseGet(() -> {
                     throw new WebApplicationException(Response.Status.NOT_FOUND);
                 });
 
         User user = oauthCodes.remove(tokenRequest.getCode());
+        user = usersDao.findById(user.getId()).orElseThrow(() -> {
+            throw new WebApplicationException("<div class=\"red lighten-2\" style=\"padding:8px;\"><b>Autentifikácia zlyhala.<b/> <br>" +
+                    "Skontrolujte prihlasovacie meno a heslo.</div> <br> <a class=\"waves-effect waves-light btn orange\" href=\"javascript:history.back()\">Späť</a>", Response.Status.UNAUTHORIZED);
+        });
 
         return getTokenResponse(user);
     }
@@ -200,7 +207,7 @@ public class LoginResource {
     }
 
     private AccessToken getAccessToken(User user) {
-        String jwt = createJWT(user.getUUID(), "me", user.getName(), Integer.MAX_VALUE, Map.of("scope", user.getRolesString()));
+        String jwt = createJWT(user.getId(), "me", user.getName(), Integer.MAX_VALUE, Map.of("scope", user.getRolesString()));
 
         return new AccessToken().withAccessToken(jwt)
                 .withTokenType("Bearer")
@@ -209,7 +216,7 @@ public class LoginResource {
                 .withExampleParameter("example_value");
     }
 
-    public String createJWT(String id, String issuer, String subject, long ttlMillis, Map<String, Object> claims) {
+    public String createJWT(Long id, String issuer, String subject, long ttlMillis, Map<String, Object> claims) {
 
         //The JWT signature algorithm we will be using to sign the token
         SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
@@ -217,10 +224,9 @@ public class LoginResource {
         long nowMillis = System.currentTimeMillis();
         Date now = new Date(nowMillis);
 
-
         //Let's set the JWT Claims
         JwtBuilder builder = Jwts.builder()
-                .setId(id)
+                .setId(id.toString())
                 .setIssuedAt(now)
                 .setSubject(subject)
                 .setIssuer(issuer)

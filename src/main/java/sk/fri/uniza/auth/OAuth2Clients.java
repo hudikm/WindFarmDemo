@@ -1,6 +1,7 @@
 package sk.fri.uniza.auth;
 
 import com.google.common.collect.ImmutableMap;
+import sk.fri.uniza.api.Paged;
 import sk.fri.uniza.db.BasicDao;
 
 import java.util.*;
@@ -38,13 +39,9 @@ public class OAuth2Clients implements BasicDao<OAuth2Client, String> {
 
 
     @Override
-    public Optional<OAuth2Client> get(String id) {
+    public Optional<OAuth2Client> findById(String id) {
         OAuth2Client oAuth2Client = clientsDB.get(id);
-
         return Optional.ofNullable(oAuth2Client);
-
-
-//        return Optional.empty();
     }
 
     @Override
@@ -53,17 +50,23 @@ public class OAuth2Clients implements BasicDao<OAuth2Client, String> {
     }
 
     @Override
-    public void save(OAuth2Client oAuth2Client) {
-
+    public Paged<List<OAuth2Client>> getAll(int limit, int page) {
+        return null;
     }
 
     @Override
-    public void update(OAuth2Client oAuth2Client, String[] params) {
+    public String save(OAuth2Client oAuth2Client) {
+        return null;
+    }
 
+    @Override
+    public String update(OAuth2Client oAuth2Client, String[] params) {
+        return null;
     }
 
     @Override
     public void delete(OAuth2Client oAuth2Client) {
-
     }
+
+
 }

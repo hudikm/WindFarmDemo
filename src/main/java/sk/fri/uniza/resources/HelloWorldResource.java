@@ -7,7 +7,7 @@ import io.dropwizard.auth.Auth;
 import io.dropwizard.jersey.sessions.Session;
 import sk.fri.uniza.api.Saying;
 import sk.fri.uniza.auth.Role;
-import sk.fri.uniza.auth.User;
+import sk.fri.uniza.core.User;
 
 import javax.annotation.security.RolesAllowed;
 import javax.servlet.http.HttpSession;

@@ -3,29 +3,40 @@ package sk.fri.uniza.auth;
 import com.google.common.collect.ImmutableSet;
 import io.dropwizard.auth.AuthenticationException;
 import io.dropwizard.auth.Authenticator;
+import io.dropwizard.hibernate.UnitOfWork;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.SignatureException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sk.fri.uniza.core.User;
+import sk.fri.uniza.core.UserBuilder;
+import sk.fri.uniza.db.UsersDao;
 
-import javax.crypto.spec.SecretKeySpec;
 import java.security.Key;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 
+
 public class OAuth2Authenticator implements Authenticator<String, User> {
     private static final Logger LOG = LoggerFactory.getLogger(OAuth2Authenticator.class);
+    private UsersDao usersDao;
+    private Key key = null;
 
-    private Key key;
 
-    public OAuth2Authenticator(Key key) {
+    public OAuth2Authenticator(UsersDao usersDao, Key key) {
+        this.usersDao = usersDao;
         //We will sign our JWT with our ApiKey secret
         // this.key = new SecretKeySpec(key.getEncoded(), SignatureAlgorithm.forSigningKey(key).getJcaName());
         this.key = key;
 
+    }
+
+
+    @UnitOfWork
+    public void initializeDefUsers(){
+        UsersDao.getUserDB().forEach(usersDao::save);
     }
 
     @Override
@@ -45,21 +56,20 @@ public class OAuth2Authenticator implements Authenticator<String, User> {
         }
 
         Set<String> roles = parseRolesClaim(claimsJws);
-
         return Optional.of(
-                User.newBuilder()
-                        .withId(claimsJws.getSubject())
-                        .withUUID(claimsJws.getId())
-                        .withRoles(roles)
-                        .build());
+                new UserBuilder()
+                        .setUserName(claimsJws.getSubject())
+                        .setRoles(roles)
+                        .setId(Long.valueOf(claimsJws.getId()))
+                        .createUser());
     }
 
 
     private Set<String> parseRolesClaim(Claims claims) throws AuthenticationException {
-        Object scopesObject = claims.get("scope", String.class);
+        String scopesObject = claims.get("scope", String.class);
         String[] scopes = {};
-        if (scopesObject != null && scopesObject instanceof String) {
-            scopes = ((String) scopesObject).split(" ");
+        if (scopesObject != null) {
+            scopes = scopesObject.split(" ");
         }
         return ImmutableSet.copyOf(Arrays.asList(scopes));
     }

@@ -2,6 +2,7 @@ package sk.fri.uniza.config;
 
 import io.dropwizard.Configuration;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.dropwizard.db.DataSourceFactory;
 import org.hibernate.validator.constraints.*;
 
 import javax.validation.Valid;
@@ -14,13 +15,25 @@ public class WindFarmDemoConfiguration extends Configuration {
     @NotNull
     private OAuth2Configuration oAuth2Configuration = new OAuth2Configuration();
 
+    @Valid
+    @NotNull
+    private DataSourceFactory database = new DataSourceFactory();
     @NotNull
     private Map<String, Map<String, String>> viewRendererConfiguration = Collections.emptyMap();
-
     @NotEmpty
     private String template;
     @NotEmpty
     private String defaultName = "Stranger";
+
+    @JsonProperty("database")
+    public DataSourceFactory getDataSourceFactory() {
+        return database;
+    }
+
+    @JsonProperty("database")
+    public void setDataSourceFactory(DataSourceFactory dataSourceFactory) {
+        this.database = dataSourceFactory;
+    }
 
     @JsonProperty("auth2")
     public OAuth2Configuration getoAuth2Configuration() {
