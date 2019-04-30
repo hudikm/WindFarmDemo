@@ -30,7 +30,6 @@ viewRendererConfiguration:
     strict_syntax: false
     default_encoding: UTF-8
 
-
 #Server configuration.
 server:
   rootPath: /api/

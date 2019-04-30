@@ -16,7 +16,7 @@ import java.util.Random;
 import java.util.Set;
 
 @Entity
-@Table(name = "UsersDao")
+@Table(name = "Users")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @NamedQueries(
         {
@@ -38,14 +38,27 @@ public class User implements Principal {
     @ElementCollection(targetClass = String.class)
     @JsonProperty
     private Set<String> roles;
+    @Column
+
+    @Lob
     @JsonIgnore
     private byte[] secrete;
+    @Lob
+    @Column
     @JsonIgnore
-    private byte[] salt = new byte[8];
+    private byte[] salt;
+    public User(User other) {
+        this.id = other.id;
+        this.userName = other.userName;
+        this.roles = other.roles;
+        this.secrete = other.secrete;
+        this.salt = other.salt;
+    }
 
     // Hibernate need default constructor
     public User() {
     }
+
     public User(Long id, String userName, Set<String> roles, String password) {
         this.id = id;
         this.userName = userName;
@@ -53,7 +66,6 @@ public class User implements Principal {
         if (password != null)
             setNewPassword(password);
     }
-
     public User(String userName, Set<String> roles, String password) {
         this.userName = userName;
         this.roles = roles;
@@ -80,8 +92,28 @@ public class User implements Principal {
         return md.digest(ArrayUtils.addAll(salt, password.getBytes()));
     }
 
+    public String getUserName() {
+        return userName;
+    }
+
     public void setUserName(String userName) {
         this.userName = userName;
+    }
+
+    public byte[] getSecrete() {
+        return secrete;
+    }
+
+    public void setSecrete(byte[] secrete) {
+        this.secrete = secrete;
+    }
+
+    public byte[] getSalt() {
+        return salt;
+    }
+
+    public void setSalt(byte[] salt) {
+        this.salt = salt;
     }
 
     /*
@@ -97,10 +129,18 @@ public class User implements Principal {
         return id;
     }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     @Column
-    @ElementCollection(targetClass = String.class)
+    @ElementCollection(targetClass = String.class,fetch = FetchType.EAGER)
     public Set<String> getRoles() {
         return roles;
+    }
+
+    public void setRoles(Set<String> roles) {
+        this.roles = roles;
     }
 
     @JsonIgnore
@@ -109,8 +149,9 @@ public class User implements Principal {
     }
 
     public void setNewPassword(String newPassword) {
-        rand.nextBytes(salt);
-        secrete = User.generateHashSecrete(salt, newPassword);
+        setSalt(new byte[8]);
+        rand.nextBytes(getSalt());
+        setSecrete(User.generateHashSecrete(salt, newPassword));
     }
 
     /**
@@ -120,5 +161,30 @@ public class User implements Principal {
         byte[] bytes = generateHashSecrete(this.salt, password);
         return Arrays.equals(bytes, secrete);
 
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        User user = (User) o;
+
+        if (!id.equals(user.id)) return false;
+        if (!userName.equals(user.userName)) return false;
+        if (!roles.equals(user.roles)) return false;
+        if (!Arrays.equals(secrete, user.secrete)) return false;
+        return Arrays.equals(salt, user.salt);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = id.hashCode();
+        result = 31 * result + userName.hashCode();
+        result = 31 * result + roles.hashCode();
+        result = 31 * result + Arrays.hashCode(secrete);
+        result = 31 * result + Arrays.hashCode(salt);
+        return result;
     }
 }

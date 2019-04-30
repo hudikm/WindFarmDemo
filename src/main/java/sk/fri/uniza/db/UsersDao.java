@@ -49,9 +49,9 @@ public class UsersDao extends AbstractDAO<User> implements BasicDao<User, Long> 
                 .setUserName(UUID.randomUUID().toString())
                 .setRoles(Set.of(Role.USER_READ_ONLY))
                 .setPassword("heslo")
-                .setFirstName("First Name ")
-                .setLastName("Last Name ")
-                .setEmail("Email ")
+                .setFirstName("First Name")
+                .setLastName("Last Name")
+                .setEmail("Email@mail.com")
                 .createPerson())
                 .limit(100)
                 .collect(Collectors.toList());
@@ -129,7 +129,16 @@ public class UsersDao extends AbstractDAO<User> implements BasicDao<User, Long> 
 
     @Override
     public Long update(User user, String[] params) {
-        return persist(user).getId();
+        persist(user);
+        return user.getId();
+
+    }
+
+    public void saveNewPassword(Long id, String password){
+        User user = get(id);
+        user.setUserName("test@test.sk");
+//        user.setNewPassword(password);
+
 
     }
 

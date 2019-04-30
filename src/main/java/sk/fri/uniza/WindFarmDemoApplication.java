@@ -17,7 +17,9 @@ import io.dropwizard.setup.Environment;
 import io.dropwizard.views.View;
 import io.dropwizard.views.ViewBundle;
 import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
+import org.hibernate.SessionFactory;
 import sk.fri.uniza.api.Person;
+import sk.fri.uniza.api.Phone;
 import sk.fri.uniza.auth.*;
 import sk.fri.uniza.config.WindFarmDemoConfiguration;
 import sk.fri.uniza.core.User;
@@ -46,17 +48,24 @@ public class WindFarmDemoApplication extends Application<WindFarmDemoConfigurati
         return "WindFarmDemo";
     }
 
-    private final HibernateBundle<WindFarmDemoConfiguration> hibernate = new HibernateBundle<WindFarmDemoConfiguration>(User.class, Person.class) {
+
+    private final HibernateBundle<WindFarmDemoConfiguration> hibernate = new HibernateBundle<WindFarmDemoConfiguration>(User.class, Person.class, Phone.class) {
 
         @Override
         public PooledDataSourceFactory getDataSourceFactory(WindFarmDemoConfiguration windFarmDemoConfiguration) {
             return windFarmDemoConfiguration.getDataSourceFactory();
+        }
+
+        @Override
+        public SessionFactory getSessionFactory() {
+            return super.getSessionFactory();
         }
     };
 
 
     @Override
     public void initialize(final Bootstrap<WindFarmDemoConfiguration> bootstrap) {
+
 
         bootstrap.addBundle(new AssetsBundle("/assets/", "/"));
         bootstrap.addBundle(new RedirectBundle(

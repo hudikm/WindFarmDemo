@@ -4,9 +4,11 @@ import io.dropwizard.hibernate.UnitOfWork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sk.fri.uniza.api.Paged;
+import sk.fri.uniza.auth.Role;
 import sk.fri.uniza.core.User;
 import sk.fri.uniza.db.UsersDao;
 
+import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -39,6 +41,28 @@ public class UsersResource {
                     .entity(userList)
                     .build();
         }
+
+    }
+
+    @POST
+    @Path("/password")
+    @UnitOfWork()
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @RolesAllowed({Role.ADMIN})
+    public Response setNewPassword(@QueryParam("id") Long id, @FormParam("password") String password) {
+
+//        Optional<User> userOptional = usersDao.findById(id);
+//        if (userOptional.isPresent()) {
+////            userOptional.get().setUserName("test@test.sk");
+//            userOptional.get().setNewPassword(password);
+////            usersDao.update(userOptional.get(), null);
+
+        usersDao.saveNewPassword(id, password);
+        return Response.ok().build();
+//        }
+//        return Response.status(Response.Status.BAD_REQUEST).build();
+
 
     }
 }
