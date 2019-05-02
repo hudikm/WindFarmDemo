@@ -2,6 +2,11 @@ package sk.fri.uniza.api;
 
 import java.util.Collection;
 
+/**
+ * This class is used as a container for paged data
+ *
+ * @param <T> Type of collection object that holds the paged data
+ */
 public class Paged<T extends Collection> {
 
     private int page = 1;

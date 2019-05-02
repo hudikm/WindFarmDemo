@@ -33,6 +33,7 @@ public class User implements Principal {
     @JsonProperty
     private Long id;
     @JsonProperty
+    @Column(unique = true)
     private String userName;
     @Column
     @ElementCollection(targetClass = String.class)

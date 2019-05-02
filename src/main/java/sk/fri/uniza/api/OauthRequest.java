@@ -1,18 +1,25 @@
 package sk.fri.uniza.api;
 
+import io.swagger.annotations.ApiParam;
+
 import javax.ws.rs.QueryParam;
 
 
 public class OauthRequest {
 
+    @ApiParam(value = "The id of the application that asks for authorization", required = true)
     @QueryParam("client_id")
     private String clientId;
+    @ApiParam(value = "A space-delimited list of permissions that the application requires.", required = true)
     @QueryParam("scope")
     private String scope;
+    @ApiParam(value = "The primary reason for using the state parameter is to mitigate CSRF attacks. An opaque value, used for security purposes. If this request parameter is set in the request, then it is returned to the application as part of the redirect_uri.", required = true)
     @QueryParam("state")
     private String state;
+    @ApiParam(value = "Holds a URL. A successful response from this endpoint results in a redirect to this URL.", required = true)
     @QueryParam("redirect_uri")
     private String redirectUri;
+    @ApiParam(value = "Informs the Authorization Server of the desired authorization processing flow", required = true, allowableValues = "code,token")
     @QueryParam("response_type")
     private String responseType;
 

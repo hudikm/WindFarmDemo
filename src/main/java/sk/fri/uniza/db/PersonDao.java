@@ -1,12 +1,10 @@
 package sk.fri.uniza.db;
 
 import io.dropwizard.hibernate.AbstractDAO;
+import org.hibernate.HibernateException;
 import org.hibernate.SessionFactory;
-import org.hibernate.Transaction;
 import sk.fri.uniza.api.Paged;
 import sk.fri.uniza.api.Person;
-import sk.fri.uniza.api.PersonBuilder;
-import sk.fri.uniza.core.User;
 
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -27,7 +25,7 @@ public class PersonDao extends AbstractDAO<Person> implements BasicDao<Person, L
 
     @Override
     public Optional<Person> findById(Long id) {
-        if(id == null) return Optional.empty();
+        if (id == null) return Optional.empty();
         return Optional.ofNullable(get(id));
     }
 
@@ -64,23 +62,22 @@ public class PersonDao extends AbstractDAO<Person> implements BasicDao<Person, L
     }
 
     @Override
-    public Long save(Person person) {
-        Optional<Person> personOptional = findById(person.getId());
-        personOptional.ifPresent(person1 -> {
-            person.setSalt(person1.getSalt());
-            person.setSecrete(person1.getSecrete());
-            currentSession().detach(person1);
-        });
-
+    public Long save(Person person) throws HibernateException {
         persist(person);
         return person.getId();
     }
 
     @Override
     public Long update(Person person, String[] params) {
-//        Transaction transaction = currentSession().beginTransaction();
-//        Long id = persist(person).getId();
-//        transaction.commit();
+
+        // Find person in DB and copy salt, secrete so the values will not be affected
+        Optional<Person> personOptional = findById(person.getId());
+        personOptional.ifPresent(person1 -> {
+            person.setSalt(person1.getSalt());
+            person.setSecrete(person1.getSecrete());
+            currentSession().detach(person1);
+        });
+        persist(person);
         return person.getId();
     }
 

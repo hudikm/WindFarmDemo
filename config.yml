@@ -80,3 +80,16 @@ database:
 
   # whether or not idle connections should be validated
   checkConnectionWhileIdle: false
+
+#Swagger documentation builder
+#https://github.com/smoketurner/dropwizard-swagger
+swagger:
+  resourcePackage: sk.fri.uniza.resources
+  title: WindFarmDemo microservices
+  schemes: ["http","https"]
+  uriPrefix: "/api"
+  oauth2:
+    clientId: client1
+    clientSecrete: 123456
+    appName: WindFarmDemo
+    realm: JWT

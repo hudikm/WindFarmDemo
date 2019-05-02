@@ -5,8 +5,6 @@ import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.auth.AuthDynamicFeature;
 import io.dropwizard.auth.AuthValueFactoryProvider;
 import io.dropwizard.auth.oauth.OAuthCredentialAuthFilter;
-import io.dropwizard.bundles.redirect.HttpsRedirect;
-import io.dropwizard.bundles.redirect.RedirectBundle;
 import io.dropwizard.db.PooledDataSourceFactory;
 import io.dropwizard.hibernate.HibernateBundle;
 import io.dropwizard.hibernate.UnitOfWorkAwareProxyFactory;
@@ -16,11 +14,15 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.views.View;
 import io.dropwizard.views.ViewBundle;
+import io.federecio.dropwizard.swagger.SwaggerBundle;
+import io.federecio.dropwizard.swagger.SwaggerBundleConfiguration;
 import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
 import org.hibernate.SessionFactory;
 import sk.fri.uniza.api.Person;
 import sk.fri.uniza.api.Phone;
-import sk.fri.uniza.auth.*;
+import sk.fri.uniza.auth.OAuth2Authenticator;
+import sk.fri.uniza.auth.OAuth2Authorizer;
+import sk.fri.uniza.auth.OAuth2Clients;
 import sk.fri.uniza.config.WindFarmDemoConfiguration;
 import sk.fri.uniza.core.User;
 import sk.fri.uniza.db.PersonDao;
@@ -33,8 +35,8 @@ import sk.fri.uniza.resources.UsersResource;
 import sk.fri.uniza.views.ErrorView;
 
 import javax.ws.rs.core.MediaType;
-import java.security.KeyPair;
 import java.security.Key;
+import java.security.KeyPair;
 import java.util.Map;
 
 public class WindFarmDemoApplication extends Application<WindFarmDemoConfiguration> {
@@ -49,6 +51,10 @@ public class WindFarmDemoApplication extends Application<WindFarmDemoConfigurati
     }
 
 
+    /**
+     * Initialization of Hibernate ORM bundle.
+     * Note: Add class that need to be mapped by Hibernate
+     */
     private final HibernateBundle<WindFarmDemoConfiguration> hibernate = new HibernateBundle<WindFarmDemoConfiguration>(User.class, Person.class, Phone.class) {
 
         @Override
@@ -68,9 +74,8 @@ public class WindFarmDemoApplication extends Application<WindFarmDemoConfigurati
 
 
         bootstrap.addBundle(new AssetsBundle("/assets/", "/"));
-        bootstrap.addBundle(new RedirectBundle(
-                new HttpsRedirect()
-        ));
+
+        // Add View html bundle
         bootstrap.addBundle(new ViewBundle<WindFarmDemoConfiguration>() {
             @Override
             public Map<String, Map<String, String>> getViewConfiguration(WindFarmDemoConfiguration configuration) {
@@ -78,7 +83,16 @@ public class WindFarmDemoApplication extends Application<WindFarmDemoConfigurati
             }
         });
 
+        // Add ORM Hibernate bundle
         bootstrap.addBundle(hibernate);
+
+        // Swagger documentation available on http://localhost:<your_port>/swagger
+        bootstrap.addBundle(new SwaggerBundle<WindFarmDemoConfiguration>() {
+            @Override
+            protected SwaggerBundleConfiguration getSwaggerBundleConfiguration(WindFarmDemoConfiguration configuration) {
+                return configuration.swaggerBundleConfiguration;
+            }
+        });
     }
 
     @Override
@@ -107,11 +121,15 @@ public class WindFarmDemoApplication extends Application<WindFarmDemoConfigurati
     }
 
     private void registerUserAuth(WindFarmDemoConfiguration configuration, Environment environment) {
-        KeyPair secreteKey = configuration.getoAuth2Configuration().getSecreteKey(false);
 
+        // Load key that is used to sign the JWT token
+        KeyPair secreteKey = configuration.getOAuth2Configuration().getSecreteKey(false);
+
+        // UsersDAO
         final UsersDao usersDao = UsersDao.createUsersDao(hibernate.getSessionFactory());
-        OAuth2Authenticator oAuth2Authenticator = new UnitOfWorkAwareProxyFactory(hibernate).create(OAuth2Authenticator.class, new Class[]{UsersDao.class, Key.class}, new Object[]{usersDao, secreteKey.getPublic()});
 
+        // Initialize OAuth 2 authorization mechanism
+        OAuth2Authenticator oAuth2Authenticator = new UnitOfWorkAwareProxyFactory(hibernate).create(OAuth2Authenticator.class, new Class[]{UsersDao.class, Key.class}, new Object[]{usersDao, secreteKey.getPublic()});
         environment.jersey().register(new AuthDynamicFeature(
                 new OAuthCredentialAuthFilter.Builder<User>()
                         .setAuthenticator(oAuth2Authenticator)
@@ -120,7 +138,8 @@ public class WindFarmDemoApplication extends Application<WindFarmDemoConfigurati
                         .buildAuthFilter()
         ));
 
-        oAuth2Authenticator.initializeDefUsers();
+        // Generate fake users
+        oAuth2Authenticator.generateUsers();
 
         // Enable the resource protection annotations: @RolesAllowed, @PermitAll & @DenyAll
         environment.jersey().register(RolesAllowedDynamicFeature.class);
@@ -132,10 +151,11 @@ public class WindFarmDemoApplication extends Application<WindFarmDemoConfigurati
 
         final HelloWorldResource helloWorldResource = new HelloWorldResource(configuration.getTemplate(), configuration.getDefaultName());
 
+        // Create Dao access objects
         final UsersDao usersDao = UsersDao.createUsersDao(hibernate.getSessionFactory());
         final PersonDao personDao = new PersonDao(hibernate.getSessionFactory());
 
-        KeyPair secreteKey = configuration.getoAuth2Configuration().getSecreteKey(false);
+        KeyPair secreteKey = configuration.getOAuth2Configuration().getSecreteKey(false);
         final LoginResource loginResource = new LoginResource(secreteKey, usersDao, OAuth2Clients.getInstance());
         final UsersResource usersResource = new UsersResource(usersDao);
         final PersonResource personResource = new PersonResource(personDao);

@@ -12,6 +12,18 @@ public class LoginData {
     private String sessionId;
     @FormParam("action")
     private Object action;
+    @FormParam("stay_signin")
+    private Boolean staySignin;
+
+    @FormParam("stay_signin")
+    public Boolean getStaySignin() {
+        return staySignin;
+    }
+
+    @FormParam("stay_signin")
+    public void setStaySignin(Boolean stay_signin) {
+        this.staySignin = stay_signin;
+    }
 
     @FormParam("username")
     public String getUsername() {

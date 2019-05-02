@@ -5,6 +5,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sk.fri.uniza.api.*;
@@ -30,6 +32,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Path("/login")
+@Api(value = "OAuth2 and Login")
 public class LoginResource {
 
     private final Logger myLogger = LoggerFactory.getLogger(this.getClass());
@@ -44,10 +47,8 @@ public class LoginResource {
     private OAuth2Clients oAuth2Clients;
 
     public LoginResource(KeyPair keyPair, UsersDao usersDao, OAuth2Clients oAuth2Clients) {
-        //We will sign our JWT with our ApiKey secret
         this.privateKey = keyPair.getPrivate();
         this.publicKey = keyPair.getPublic();
-//        this.privateKey = new SecretKeySpec(privateKey.getEncoded(), SignatureAlgorithm.forSigningKey(privateKey).getJcaName());
         this.usersDao = usersDao;
         this.oAuth2Clients = oAuth2Clients;
         oauthSession = new ConcurrentHashMap<String, OauthRequest>();
@@ -58,6 +59,7 @@ public class LoginResource {
 
     @GET
     @Produces(MediaType.TEXT_HTML)
+    @ApiOperation(value = "Display Login page")
     public LoginPageView showLoginPage(@BeanParam OauthRequest oauthRequest) {
 
         return oAuth2Clients.findById(oauthRequest.getClientId())
@@ -87,9 +89,10 @@ public class LoginResource {
     @Path("/code")
     @POST
     @UnitOfWork
+    @ApiOperation(value = "Request to obtain code")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.APPLICATION_FORM_URLENCODED)
-    public Response getAccessCode(/*MultivaluedMap<String, String> */@NotNull @BeanParam LoginData formParams) {
+    public Response getAccessCode(@NotNull @BeanParam LoginData formParams) {
         if (formParams != null) {
             /*
               Test if login info is valid i.e. User name and password
@@ -114,11 +117,13 @@ public class LoginResource {
             URI uri = UriBuilder.fromPath(oauthRequest.getRedirectUri())
                     .queryParam("code", code)
                     .queryParam("state", oauthRequest.getState())
+                    .queryParam("stay_signin", formParams.getStaySignin() != null)
                     .build();
 
-            return Response.status(Response.Status.TEMPORARY_REDIRECT)
-                    .location(uri)
-                    .build();
+//            return Response.status(Response.Status.TEMPORARY_REDIRECT)
+//                    .location(uri)
+//                    .build();
+            return Response.seeOther(uri).build();
         }
         throw new WebApplicationException("<div class=\"red lighten-2\" style=\"padding:8px;\"><b>Autentifikácia zlyhala.<b/> <br>" +
                 "Skontrolujte prihlasovacie meno a heslo.</div> <br> <a class=\"waves-effect waves-light btn orange\" href=\"javascript:history.back()\">Späť</a>", Response.Status.UNAUTHORIZED);
@@ -127,7 +132,9 @@ public class LoginResource {
     @Path("/implicit")
     @POST
     @UnitOfWork
+    @ApiOperation(value = "Request to obtain access token. Implicit flow")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.APPLICATION_JSON)
     public Response implicitFlowAuth(@NotNull @BeanParam LoginData formParams) {
         if (formParams != null) {
 
@@ -160,21 +167,27 @@ public class LoginResource {
             cacheControl.setNoStore(true);
             cacheControl.setNoCache(true);
 
-            return Response.status(Response.Status.TEMPORARY_REDIRECT)
+            return Response.seeOther(uri)
                     .cacheControl(cacheControl)
                     .type(MediaType.APPLICATION_FORM_URLENCODED)
-                    .location(uri)
                     .build();
+
+//            return Response.status(Response.Status.TEMPORARY_REDIRECT)
+//                    .cacheControl(cacheControl)
+//                    .type(MediaType.APPLICATION_FORM_URLENCODED)
+//                    .location(uri)
+//                    .build();
         }
         return Response.noContent().build();
     }
 
     @POST
     @Path("/token")
+    @ApiOperation(value = "Request to obtain access token from code. Authorization Code")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.APPLICATION_JSON)
     @UnitOfWork
-    public Response getAccessToken(/*MultivaluedMap<String, String> params*/@NotNull @BeanParam OauthTokenRequest tokenRequest) {
+    public Response getAccessToken(@NotNull @BeanParam OauthTokenRequest tokenRequest) {
 
         oAuth2Clients.findById(tokenRequest.getClientId())
                 .filter(oAuth2Client -> oAuth2Client.getClientSecrete().equals(tokenRequest.getClient_secret()))
@@ -248,6 +261,7 @@ public class LoginResource {
 
     @GET
     @Path("/public-key")
+    @ApiOperation(value = "Request to obtain public key", notes = "An obtained public key can by used to verify JWT token")
     @Produces(MediaType.APPLICATION_JSON)
     public sk.fri.uniza.api.PublicKey getPublicKey() {
         sk.fri.uniza.api.PublicKey publicKey = new PublicKey(this.publicKey);

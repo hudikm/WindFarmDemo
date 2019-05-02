@@ -6,7 +6,10 @@ import io.jsonwebtoken.security.Keys;
 import org.hibernate.validator.constraints.NotEmpty;
 
 import javax.crypto.SecretKey;
-import java.io.*;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -63,6 +66,12 @@ public class OAuth2Configuration {
     }
 
 
+    /**
+     * Read and return KeyPair from keystore file. Keystore file is defined in config.yml file.
+     *
+     * @param createIfNotExist create new key if there is no key present in keystore
+     * @return Key pair (public, private)
+     */
     public KeyPair getSecreteKey(boolean createIfNotExist) {
         KeyStore ks = null;
         Key key = null;

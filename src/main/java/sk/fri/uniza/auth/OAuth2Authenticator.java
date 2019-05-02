@@ -28,14 +28,13 @@ public class OAuth2Authenticator implements Authenticator<String, User> {
     public OAuth2Authenticator(UsersDao usersDao, Key key) {
         this.usersDao = usersDao;
         //We will sign our JWT with our ApiKey secret
-        // this.key = new SecretKeySpec(key.getEncoded(), SignatureAlgorithm.forSigningKey(key).getJcaName());
         this.key = key;
 
     }
 
 
     @UnitOfWork
-    public void initializeDefUsers(){
+    public void generateUsers() {
         UsersDao.getUserDB().forEach(usersDao::save);
     }
 

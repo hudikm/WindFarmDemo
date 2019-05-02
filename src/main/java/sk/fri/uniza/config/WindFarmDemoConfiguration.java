@@ -1,20 +1,22 @@
 package sk.fri.uniza.config;
 
-import io.dropwizard.Configuration;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.dropwizard.Configuration;
 import io.dropwizard.db.DataSourceFactory;
-import org.hibernate.validator.constraints.*;
+import io.federecio.dropwizard.swagger.SwaggerBundleConfiguration;
+import org.hibernate.validator.constraints.NotEmpty;
 
 import javax.validation.Valid;
-import javax.validation.constraints.*;
+import javax.validation.constraints.NotNull;
 import java.util.Collections;
 import java.util.Map;
 
 public class WindFarmDemoConfiguration extends Configuration {
+    @JsonProperty("swagger")
+    public SwaggerBundleConfiguration swaggerBundleConfiguration;
     @Valid
     @NotNull
     private OAuth2Configuration oAuth2Configuration = new OAuth2Configuration();
-
     @Valid
     @NotNull
     private DataSourceFactory database = new DataSourceFactory();
@@ -24,6 +26,16 @@ public class WindFarmDemoConfiguration extends Configuration {
     private String template;
     @NotEmpty
     private String defaultName = "Stranger";
+
+    @JsonProperty("swagger")
+    public SwaggerBundleConfiguration getSwaggerBundleConfiguration() {
+        return swaggerBundleConfiguration;
+    }
+
+    @JsonProperty("swagger")
+    public void setSwaggerBundleConfiguration(SwaggerBundleConfiguration swaggerBundleConfiguration) {
+        this.swaggerBundleConfiguration = swaggerBundleConfiguration;
+    }
 
     @JsonProperty("database")
     public DataSourceFactory getDataSourceFactory() {
@@ -36,7 +48,7 @@ public class WindFarmDemoConfiguration extends Configuration {
     }
 
     @JsonProperty("auth2")
-    public OAuth2Configuration getoAuth2Configuration() {
+    public OAuth2Configuration getOAuth2Configuration() {
         return oAuth2Configuration;
     }
 
