@@ -1,4 +1,6 @@
-package sk.fri.uniza.api;
+package sk.fri.uniza.core;
+
+import sk.fri.uniza.api.Person;
 
 import java.util.Set;
 

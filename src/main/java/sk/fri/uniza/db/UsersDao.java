@@ -1,23 +1,21 @@
 package sk.fri.uniza.db;
 
-import com.google.common.collect.ImmutableMap;
 import io.dropwizard.hibernate.AbstractDAO;
 import org.hibernate.SessionFactory;
-import org.hibernate.criterion.Restrictions;
 import org.hibernate.query.Query;
 import sk.fri.uniza.api.Paged;
 import sk.fri.uniza.api.Person;
-import sk.fri.uniza.api.PersonBuilder;
 import sk.fri.uniza.auth.Role;
+import sk.fri.uniza.core.PersonBuilder;
 import sk.fri.uniza.core.User;
-import sk.fri.uniza.core.UserBuilder;
-import sk.fri.uniza.db.BasicDao;
 
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
-import java.nio.charset.Charset;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
