@@ -1,4 +1,7 @@
 # WindFarmDemo
+Web application si located here: [windfarm demo](https://github.com/hudikm/WindFarmDemoWeb).
+
+[Documentation(Slovak)](https://hudikm.github.io/WindfarmDemoDocs/)
 
 How to start the WindFarmDemo application
 ---

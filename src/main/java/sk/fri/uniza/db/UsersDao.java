@@ -26,12 +26,12 @@ public class UsersDao extends AbstractDAO<User> implements BasicDao<User, Long> 
 
     static {
         Person user1 = new PersonBuilder()
-                .setUserName("martin.hudik@fri.uniza.sk")
+                .setUserName("user@gmail.com")
                 .setRoles(Set.of(Role.USER_READ_ONLY))
                 .setPassword("heslo")
-                .setFirstName("Martin")
-                .setLastName("Hudik")
-                .setEmail("martin.hudik@fri.uniza.sk")
+                .setFirstName("Adam")
+                .setLastName("Sangala")
+                .setEmail("user@gmail.com")
                 .createPerson();
 
         Person user2 = new PersonBuilder()
